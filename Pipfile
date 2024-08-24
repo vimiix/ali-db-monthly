@@ -1,0 +1,17 @@
+[[source]]
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+verify_ssl = true
+name = "pip_conf_index_global"
+
+[packages]
+sqlalchemy = "*"
+pymysql = "*"
+cryptography = "*"
+schedule = "*"
+beautifulsoup4 = "*"
+requests = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.12"
