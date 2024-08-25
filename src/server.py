@@ -20,7 +20,7 @@ def index():
 
 def start_server(cfg: ServerConfig):
     app.debug = cfg.debug
-    logging.info("start http server")
+    logging.info("start http server at http://%s:%s", cfg.host, cfg.port)
     server = pywsgi.WSGIServer((cfg.host, cfg.port), app, log=logging.getLogger())
     server.serve_forever()
 
