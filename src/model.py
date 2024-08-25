@@ -1,7 +1,7 @@
 
 import os
 import logging
-from configparser import ConfigParser
+from configparser import ConfigParser, SectionProxy
 from datetime import date
 
 from sqlalchemy import create_engine
@@ -13,9 +13,52 @@ from sqlalchemy import String, Date
 Base = declarative_base()
 
 
+class DatabaseConfig:
+    host: str
+    port: int
+    user: str
+    password: str
+    db: str
+
+    def __init__(self, dbcfg: SectionProxy) -> None:
+        self.host = dbcfg.get("host", "localhost")
+        self.port = dbcfg.get("port", 3306)
+        self.user = dbcfg.get("user", "root")
+        self.password = dbcfg.get("password")
+        self.db = dbcfg.get("dbname", "mysql")
+        self.echo = dbcfg.getboolean("echo", False)
+        self._engine = None
+
+    def __repr__(self) -> str:
+        return f"DatabaseConfig(host={self.host}, port={self.port}, user={self.user}, db={self.db})"
+
+    def connect_string(self) -> str:
+        return f"mysql+pymysql://{self.user}:{self.password}@{self.host}:{self.port}/{self.db}"
+
+    @property
+    def engine(self) -> str:
+        if self._engine is None:
+            self._engine = create_engine(self.connect_string(), echo=self.echo)
+        return self._engine
+
+
+class ServerConfig:
+    host: str
+    port: int
+    debug: bool
+
+    def __init__(self, servercfg: SectionProxy) -> None:
+        self.host = servercfg.get("listen_host", "127.0.0.1")
+        self.port = servercfg.getint("port", 8080)
+        self.debug = servercfg.getboolean("debug", False)
+
+    def __repr__(self) -> str:
+        return f"ServerConfig(host={self.host}, port={self.port})"
+
 class Config:
     config_filename: str
-    db: "Database"
+    db: "DatabaseConfig"
+    server: "ServerConfig"
 
     def __init__(self, config_filename) -> None:
         self.config_filename = config_filename
@@ -24,35 +67,11 @@ class Config:
 
         parser = ConfigParser()
         parser.read(self.config_filename)
-        self.db = Database(parser["database"])
+        self.db = DatabaseConfig(parser["database"])
+        self.server = ServerConfig(parser["server"])
 
-class Database:
-    host: str
-    port: int
-    user: str
-    password: str
-    db: str
-
-    def __init__(self, dbcfg) -> None:
-        self.host = dbcfg.get("host", "localhost")
-        self.port = dbcfg.get("port", 3306)
-        self.user = dbcfg.get("user", "root")
-        self.password = dbcfg.get("password")
-        self.db = dbcfg.get("dbname", "mysql")
-        logging.info("create db engine")
-        self.engine = create_engine(self.connect_string(),
-                                    echo=dbcfg.getboolean("echo", False))
-        self.migrate()
-
-    def __repr__(self) -> str:
-        return f"Database(host={self.host}, port={self.port}, user={self.user}, db={self.db})"
-
-    def connect_string(self) -> str:
-        return f"mysql+pymysql://{self.user}:{self.password}@{self.host}:{self.port}/{self.db}"
-
-    def migrate(self):
-        logging.info("migrate database")
-        Base.metadata.create_all(self.engine)
+def migrate_db(engine):
+    Base.metadata.create_all(engine)
 
 class Artical(Base):
     __tablename__ = "t_articals"

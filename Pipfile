@@ -10,6 +10,8 @@ cryptography = "*"
 schedule = "*"
 beautifulsoup4 = "*"
 requests = "*"
+flask = "*"
+gevent = "*"
 
 [dev-packages]
 

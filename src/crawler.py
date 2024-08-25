@@ -9,14 +9,10 @@ import logging
 from datetime import date
 from typing import List
 
+from log import init_logging
+init_logging()
+
 from model import Config, Artical
-
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(module)s:%(lineno)d] [%(levelname)s] %(message)s",
-    datefmt="%Y-%m-%dT%H:%M:%S",
-)
 
 
 BASE_URL = "http://mysql.taobao.org/monthly/"
@@ -30,22 +26,29 @@ class Crawler:
         self.date_re = re.compile(r".*/(\d+)/(\d+)/(\d+)")
 
     def run(self) -> None:
+        logging.info("start crawler")
         self.crawl()
 
+        logging.info("schedule to crawl every day at 00:00")
         while True:
-            schedule.every().day.at("00:00").do(self.crawl)
-            schedule.run_pending()
+            try:
+                schedule.every().day.at("00:00").do(self.crawl)
+                schedule.run_pending()
+            except KeyboardInterrupt:
+                break
+            except Exception as e:
+                logging.error(e)
 
     def crawl(self) -> None:
         la = self._last_artical()
-        logging.info("Last artical: %s", la)
+        logging.info("last artical date: %s", la.create_date)
         self._update_after(la)
 
     def _update_after(self, last_artical: Artical):
-        logging.info("Updating articals")
+        logging.info("updating articals")
         monthly_links = self._fetch_links(BASE_URL)
         if not monthly_links:
-            logging.error("No monthly links found")
+            logging.error("no monthly links found")
             return
 
         articals = []
@@ -73,7 +76,7 @@ class Crawler:
                     break
 
         if not articals:
-            logging.info("No new articals found")
+            logging.info("no new articals to update")
             return
 
         self._save_articals(articals)
@@ -86,10 +89,11 @@ class Crawler:
 
     def _parse_artical(self, url: str) -> Artical:
         resp = requests.get(url)
+        resp.encoding = "utf-8"
         soup = BeautifulSoup(resp.text, "html.parser")
         block_div = soup.find("div", attrs={"class": "block"})
         if not block_div:
-            logging.error("No block div found")
+            logging.error("no block div found")
             return None
 
         logging.debug("Parsing artical: %s", url)

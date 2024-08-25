@@ -1,6 +1,3 @@
-[DEFAULT]
-
-
 [database]
 host = 127.0.0.1
 port = 3306
@@ -8,3 +5,8 @@ user = root
 password = root
 dbname = test
 echo = no
+
+[server]
+listen_host = 127.0.0.1
+port = 8080
+debug = no

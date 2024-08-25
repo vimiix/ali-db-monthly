@@ -5,10 +5,14 @@
 
 import os
 import logging
-from multiprocessing import Pool, Value
+from multiprocessing import Process
 
-from model import Config
+from log import init_logging
+init_logging()
+
+from model import Config, migrate_db
 from crawler import Crawler
+from server import start_server
 
 
 PROJECT_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -16,21 +20,8 @@ DEV_CONFIG_NAME = os.path.join(PROJECT_DIR, "config.ini")
 PROD_CONFIG_NAME = os.path.join(PROJECT_DIR, "config-prod.ini")
 
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(module)s:%(lineno)d] [%(levelname)s] %(message)s",
-    datefmt="%Y-%m-%dT%H:%M:%S",
-)
-
-
 def crawl(cfg_file: str):
-    logging.info("Start crawler")
     Crawler(Config(cfg_file)).run()
-
-
-def serve(cfg_file: str):
-    logging.info("Start server")
-    pass
 
 
 if __name__ == "__main__":
@@ -38,8 +29,22 @@ if __name__ == "__main__":
         PROD_CONFIG_NAME if os.getenv("ENV_PRODUCTION") else DEV_CONFIG_NAME
     )
 
-    p = Pool(2)
-    p.apply_async(crawl, args=(config_filename,))
-    p.apply_async(serve, args=(config_filename,))
-    p.close()
-    p.join()
+    cfg = Config(config_filename)
+    migrate_db(cfg.db.engine)
+
+    crawl_process = Process(target=crawl, args=(config_filename,), daemon=True)
+    crawl_process.start()
+
+    try:
+        start_server(cfg.server)
+    except KeyboardInterrupt:
+        pass
+    except Exception as e:
+        logging.error(e)
+
+    if crawl_process.is_alive():
+        logging.info("kill crawler process")
+        crawl_process.kill()
+
+    logging.info("bye!")
+
