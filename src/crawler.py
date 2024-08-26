@@ -41,7 +41,10 @@ class Crawler:
 
     def crawl(self) -> None:
         la = self._last_artical()
-        logging.info("last artical date: %s", la.create_date)
+        if la:
+            logging.info("last artical date: %s", la.create_date)
+        else:
+            logging.info("crawl all articals")
         self._update_after(la)
 
     def _update_after(self, last_artical: Artical):
