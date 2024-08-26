@@ -1,4 +1,8 @@
-# 阿里数据库月报 Wapper
+# 数据库内核月报 Wapper
+
+## 简介
+
+本项目是[阿里的数据库内核月报](http://mysql.taobao.org/monthly)网站的封装服务，以便于可以根据时间或数据库类型过滤查看文章。
 
 ## 部署
 
@@ -14,6 +18,12 @@ pipenv run python src/main.py
 
 ## 预览
 
-- [alidbmonthly.vimiix.com](https://alidbmonthly.vimiix.com)
+- [https://alidbmonthly.vimiix.com](https://alidbmonthly.vimiix.com)
 
 ![preview.png](./static/preview.png)
+
+## 说明
+
+- 服务启动后每天 0 点探测是否有新的文章，有的话增量更新；
+- 本项目不存储文章的内容，仅管理文章的链接，阅读文章仍是跳转到原网站；
+- 感谢阿里团队持续输出的数据库干货文章
