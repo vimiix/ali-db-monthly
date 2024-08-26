@@ -77,7 +77,7 @@
 
         function loadTagOptions() {
             $.ajax({
-                url: `http://${window.location.host}/api/tags`,
+                url: `${document.location.protocol}//${document.location.host}/api/tags`,
                 method: 'GET',
                 dataType: 'json',
                 success: function(response) {
@@ -110,7 +110,7 @@
             const tag = $('#tagFilter').val();
 
             $.ajax({
-                url: `http://${window.location.host}/api/articals`,
+                url: `${document.location.protocol}//${document.location.host}/api/articals`,
                 method: 'GET',
                 dataType: 'json',
                 data: {
