@@ -8,5 +8,4 @@ echo = no
 
 [server]
 listen_host = 127.0.0.1
-port = 8080
-debug = no
+port = 8090

@@ -1,6 +1,5 @@
-
 import os
-import logging
+import json
 from configparser import ConfigParser, SectionProxy
 from datetime import date
 
@@ -11,6 +10,10 @@ from sqlalchemy.orm import mapped_column
 from sqlalchemy import String, Date
 
 Base = declarative_base()
+
+PROJECT_DIR = os.path.dirname(os.path.realpath(__file__))
+DEV_CONFIG_NAME = os.path.join(PROJECT_DIR, "config.ini")
+PROD_CONFIG_NAME = os.path.join(PROJECT_DIR, "config-prod.ini")
 
 
 class DatabaseConfig:
@@ -55,6 +58,7 @@ class ServerConfig:
     def __repr__(self) -> str:
         return f"ServerConfig(host={self.host}, port={self.port})"
 
+
 class Config:
     config_filename: str
     db: "DatabaseConfig"
@@ -70,8 +74,44 @@ class Config:
         self.db = DatabaseConfig(parser["database"])
         self.server = ServerConfig(parser["server"])
 
+
+_default_cfg = None
+
+
+def load_config() -> Config:
+    config_filename = (
+        PROD_CONFIG_NAME if os.getenv("ENV_PRODUCTION") else DEV_CONFIG_NAME
+    )
+    return Config(config_filename)
+
+
+def get_config() -> Config:
+    global _default_cfg
+    if _default_cfg is None:
+        _default_cfg = load_config()
+    return _default_cfg
+
+
 def migrate_db(engine):
     Base.metadata.create_all(engine)
+
+
+tag_colors = [
+    '#007bff',
+    '#28a745',
+    '#6c757d',
+    '#ffc107',
+    '#dc3545',
+    '#17a2b8',
+    '#1305ad',
+    '#9b59b6',
+    '#2874a6',
+    '#e67e22',
+]
+
+def get_tag_color(tag: str) -> str:
+    return tag_colors[abs(hash(tag)) % len(tag_colors)]
+
 
 class Artical(Base):
     __tablename__ = "t_articals"
@@ -86,3 +126,13 @@ class Artical(Base):
     def __repr__(self) -> str:
         return f"Artical(id={self.id!r}, title={self.title!r}, tag={self.tag}, url={self.url}, author={self.author})"
 
+    def keys(self):
+        return ["id", "title", "tag", "url", "author", "create_date"]
+
+    def __getitem__(self, item):
+        return getattr(self, item)
+
+    def to_dict(self) -> dict:
+        d = {key: getattr(self, key) for key in self.keys()}
+        d['tag_color'] = get_tag_color(d['tag'])
+        return d

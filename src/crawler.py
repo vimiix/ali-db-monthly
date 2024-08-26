@@ -12,7 +12,7 @@ from typing import List
 from log import init_logging
 init_logging()
 
-from model import Config, Artical
+from model import Config, Artical, get_config
 
 
 BASE_URL = "http://mysql.taobao.org/monthly/"
@@ -20,8 +20,8 @@ BASE_URL = "http://mysql.taobao.org/monthly/"
 
 class Crawler:
 
-    def __init__(self, cfg: Config) -> None:
-        self.engine = cfg.db.engine
+    def __init__(self) -> None:
+        self.engine = get_config().db.engine
         self.link_re = re.compile(r"/monthly/\d+/\d+")
         self.date_re = re.compile(r".*/(\d+)/(\d+)/(\d+)")
 

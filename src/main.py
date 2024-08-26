@@ -10,35 +10,26 @@ from multiprocessing import Process
 from log import init_logging
 init_logging()
 
-from model import Config, migrate_db
+from model import migrate_db, get_config
 from crawler import Crawler
 from server import start_server
 
 
-PROJECT_DIR = os.path.dirname(os.path.realpath(__file__))
-DEV_CONFIG_NAME = os.path.join(PROJECT_DIR, "config.ini")
-PROD_CONFIG_NAME = os.path.join(PROJECT_DIR, "config-prod.ini")
-
-
-def crawl(cfg_file: str):
-    Crawler(Config(cfg_file)).run()
+def crawl():
+    Crawler().run()
 
 
 if __name__ == "__main__":
-    config_filename = (
-        PROD_CONFIG_NAME if os.getenv("ENV_PRODUCTION") else DEV_CONFIG_NAME
-    )
-
-    cfg = Config(config_filename)
+    cfg = get_config()
     migrate_db(cfg.db.engine)
 
-    crawl_process = Process(target=crawl, args=(config_filename,), daemon=True)
+    crawl_process = Process(target=crawl, daemon=True)
     crawl_process.start()
 
     try:
-        start_server(cfg.server)
+        start_server()
     except KeyboardInterrupt:
-        pass
+        logging.info("keyboard interrupt")
     except Exception as e:
         logging.error(e)
 
