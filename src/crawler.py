@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
 
+import time
 import re
 import logging
 from datetime import date
@@ -39,6 +40,7 @@ class Crawler:
                 break
             except Exception as e:
                 logging.error(e)
+            time.sleep(10)
 
     def crawl(self) -> None:
         la = self._last_artical()
