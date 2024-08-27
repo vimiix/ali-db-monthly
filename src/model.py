@@ -1,5 +1,4 @@
 import os
-import json
 from configparser import ConfigParser, SectionProxy
 from datetime import date
 
@@ -7,7 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
-from sqlalchemy import String, Date
+from sqlalchemy import String, Date, Engine
 
 Base = declarative_base()
 
@@ -39,7 +38,7 @@ class DatabaseConfig:
         return f"mysql+pymysql://{self.user}:{self.password}@{self.host}:{self.port}/{self.db}"
 
     @property
-    def engine(self) -> str:
+    def engine(self) -> Engine:
         if self._engine is None:
             self._engine = create_engine(self.connect_string(), echo=self.echo)
         return self._engine

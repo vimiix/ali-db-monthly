@@ -2,7 +2,7 @@ import schedule
 import requests
 from bs4 import BeautifulSoup
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import sessionmaker
 
 import re
 import logging
@@ -22,6 +22,7 @@ class Crawler:
 
     def __init__(self) -> None:
         self.engine = get_config().db.engine
+        self._session = sessionmaker(self.engine)
         self.link_re = re.compile(r"/monthly/\d+/\d+")
         self.date_re = re.compile(r".*/(\d+)/(\d+)/(\d+)")
 
@@ -86,7 +87,7 @@ class Crawler:
         logging.info(f"Saved {len(articals)} articals")
 
     def _save_articals(self, articals: List[Artical]):
-        with Session(self.engine) as sess:
+        with self._session() as sess:
             sess.add_all(articals)
             sess.commit()
 
@@ -146,10 +147,10 @@ class Crawler:
         return res
 
     def _last_artical(self) -> Artical:
-        with Session(self.engine) as sess:
+        with self._session() as sess:
             stmt = select(Artical).order_by(Artical.create_date.desc()).limit(1)
             res = sess.execute(stmt).scalars().first()
-            return res
+        return res
 
 if __name__ == "__main__":
     cfg = Config("config.ini")

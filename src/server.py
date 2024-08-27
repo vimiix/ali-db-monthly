@@ -4,7 +4,7 @@ from flask import (
 )
 from flask_cors import CORS
 from gevent import pywsgi
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy import select, func
 
 import logging
@@ -16,7 +16,7 @@ app = Flask(__name__)
 cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
 cfg = get_config()
 server_cfg = cfg.server
-engine = cfg.db.engine
+session = sessionmaker(cfg.db.engine)
 
 def toint(value, fallback: int) -> int:
     try:
@@ -48,7 +48,7 @@ def articals():
     if tag:
         filters.append(Artical.tag == tag)
 
-    with Session(engine) as sess:
+    with session() as sess:
         stmt = (
             select(Artical)
             .order_by(Artical.create_date.desc())
@@ -65,7 +65,7 @@ def articals():
 
 @app.route("/api/tags", methods=["GET"])
 def tags():
-    with Session(engine) as sess:
+    with session() as sess:
         stmt = select(Artical.tag).distinct().order_by(Artical.tag)
         tags = sess.execute(stmt).scalars().all()
     return jsonify(tags=tags)
