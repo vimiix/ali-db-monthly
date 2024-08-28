@@ -1,8 +1,9 @@
 import schedule
 import requests
 from bs4 import BeautifulSoup
-from sqlalchemy import select
+from sqlalchemy import select, Engine
 from sqlalchemy.orm import sessionmaker
+from diskcache import Cache
 
 import time
 import re
@@ -10,10 +11,7 @@ import logging
 from datetime import date
 from typing import List
 
-from log import init_logging
-init_logging()
-
-from model import Config, Artical, get_config
+from model import Config, Artical
 
 
 BASE_URL = "http://mysql.taobao.org/monthly/"
@@ -21,8 +19,9 @@ BASE_URL = "http://mysql.taobao.org/monthly/"
 
 class Crawler:
 
-    def __init__(self) -> None:
-        self.engine = get_config().db.engine
+    def __init__(self, engine:Engine, cache: Cache) -> None:
+        self.engine = engine
+        self.cache = cache
         self._session = sessionmaker(self.engine)
         self.link_re = re.compile(r"/monthly/\d+/\d+")
         self.date_re = re.compile(r".*/(\d+)/(\d+)/(\d+)")
@@ -87,6 +86,7 @@ class Crawler:
 
         self._save_articals(articals)
         logging.info(f"Saved {len(articals)} articals")
+        self.cache.clear()
 
     def _save_articals(self, articals: List[Artical]):
         with self._session() as sess:

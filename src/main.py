@@ -1,41 +1,36 @@
 #!/bin/env python3
 
-# 多进程，一个进程负责每日定时抓取数据
-# 一个进程提供 http 服务
-
 import os
+import threading
 import logging
-from multiprocessing import Process
+logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(module)s] [%(levelname)s] %(message)s",
+        datefmt="%Y-%m-%dT%H:%M:%S",
+    )
 
-from log import init_logging
-init_logging()
+from diskcache import Cache
 
 from model import migrate_db, get_config
 from crawler import Crawler
 from server import start_server
 
 
-def crawl():
-    Crawler().run()
-
-
 if __name__ == "__main__":
     cfg = get_config()
     migrate_db(cfg.db.engine)
+    cache = Cache(cfg.common.cache_dir)
 
-    crawl_process = Process(target=crawl, daemon=True)
-    crawl_process.start()
+    c = Crawler(cfg.db.engine, cache)
+    crawler_thread = threading.Thread(target=c.run, daemon=True)
+    crawler_thread.start()
 
     try:
-        start_server()
+        start_server(cache)
     except KeyboardInterrupt:
         logging.info("keyboard interrupt")
     except Exception as e:
         logging.error(e)
-
-    if crawl_process.is_alive():
-        logging.info("kill crawler process")
-        crawl_process.kill()
 
     logging.info("bye!")
 

@@ -12,7 +12,7 @@ beautifulsoup4 = "*"
 requests = "*"
 flask = "*"
 gevent = "*"
-flask-cors = "*"
+diskcache = "*"
 
 [dev-packages]
 

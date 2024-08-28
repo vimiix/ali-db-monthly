@@ -58,8 +58,19 @@ class ServerConfig:
         return f"ServerConfig(host={self.host}, port={self.port})"
 
 
+class CommonConfig:
+    cache_dir: str
+
+    def __init__(self, commoncfg: SectionProxy) -> None:
+        self.cache_dir = commoncfg.get("cache_dir", "./cache")
+
+    def __repr__(self) -> str:
+        return f"CommonConfig(cache_dir={self.cache_file})"
+
+
 class Config:
     config_filename: str
+    common: "CommonConfig"
     db: "DatabaseConfig"
     server: "ServerConfig"
 
@@ -70,6 +81,7 @@ class Config:
 
         parser = ConfigParser()
         parser.read(self.config_filename)
+        self.common = CommonConfig(parser["common"])
         self.db = DatabaseConfig(parser["database"])
         self.server = ServerConfig(parser["server"])
 
