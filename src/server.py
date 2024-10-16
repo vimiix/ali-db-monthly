@@ -16,7 +16,6 @@ from model import Artical, get_config
 app = Flask(__name__)
 cfg = get_config()
 server_cfg = cfg.server
-session = sessionmaker(cfg.db.engine)
 cache = None
 
 def toint(value, fallback: int) -> int:
@@ -60,7 +59,7 @@ def get_articals(start_date: str, end_date:str, tag:str, page: int) -> Tuple[Lis
         filters.append(Artical.create_date <= end_date)
     if tag:
         filters.append(Artical.tag == tag)
-    with session() as sess:
+    with sessionmaker(cfg.db.engine)() as sess:
         stmt = (
             select(Artical)
             .order_by(Artical.create_date.desc())
@@ -82,7 +81,7 @@ def get_tags():
     except KeyError:
         pass
     logging.info("not found in cache: %s", cache_key)
-    with session() as sess:
+    with sessionmaker(cfg.db.engine)() as sess:
         stmt = select(Artical.tag).distinct().order_by(Artical.tag)
         tags = sess.execute(stmt).scalars().all()
     cache.set(cache_key, tags)

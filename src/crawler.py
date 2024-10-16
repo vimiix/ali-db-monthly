@@ -22,7 +22,6 @@ class Crawler:
     def __init__(self, engine:Engine, cache: Cache) -> None:
         self.engine = engine
         self.cache = cache
-        self._session = sessionmaker(self.engine)
         self.link_re = re.compile(r"/monthly/\d+/\d+")
         self.date_re = re.compile(r".*/(\d+)/(\d+)/(\d+)")
 
@@ -89,7 +88,7 @@ class Crawler:
         self.cache.clear()
 
     def _save_articals(self, articals: List[Artical]):
-        with self._session() as sess:
+        with sessionmaker(self.engine)() as sess:
             sess.add_all(articals)
             sess.commit()
 
@@ -149,7 +148,7 @@ class Crawler:
         return res
 
     def _last_artical(self) -> Artical:
-        with self._session() as sess:
+        with sessionmaker(self.engine)() as sess:
             stmt = select(Artical).order_by(Artical.create_date.desc()).limit(1)
             res = sess.execute(stmt).scalars().first()
         return res
