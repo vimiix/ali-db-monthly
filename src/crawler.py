@@ -31,14 +31,14 @@ class Crawler:
 
         logging.info("schedule to crawl every day at 00:00")
         schedule.every().day.at("00:00").do(self.crawl)
-        try:
-            while True:
+        while True:
+            try:
                 schedule.run_pending()
                 time.sleep(10)
-        except KeyboardInterrupt:
-            return
-        except Exception as e:
-            logging.error(e)
+            except KeyboardInterrupt:
+                return
+            except Exception as e:
+                logging.error(e)
 
     def crawl(self) -> None:
         la = self._last_artical()
