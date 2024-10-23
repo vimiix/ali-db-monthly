@@ -2,7 +2,7 @@ from flask import (
     Flask, request, jsonify,
     render_template,
 )
-import datetime
+from datetime import datetime
 from gevent import pywsgi
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import select, func
