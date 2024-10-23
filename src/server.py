@@ -95,7 +95,7 @@ def tags():
 
 class Handler(pywsgi.WSGIHandler):
 
-    def log_request(self):
+    def format_request(self):
         now = datetime.now().replace(microsecond=0)
         length = self.response_length or '-'
         if self.time_finish:
