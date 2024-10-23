@@ -2,6 +2,7 @@ from flask import (
     Flask, request, jsonify,
     render_template,
 )
+import datetime
 from gevent import pywsgi
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import select, func
@@ -92,12 +93,36 @@ def tags():
     return jsonify(tags=get_tags())
 
 
+class Handler(pywsgi.WSGIHandler):
+
+    def log_request(self):
+        now = datetime.now().replace(microsecond=0)
+        length = self.response_length or '-'
+        if self.time_finish:
+            delta = '%.6f' % (self.time_finish - self.time_start)
+        else:
+            delta = '-'
+
+        client_address = self.client_address[0] if isinstance(self.client_address, tuple) else self.client_address
+
+        x_forwarded_for = self.headers.get('X-Forwarded-For')
+        if x_forwarded_for:
+            client_address = x_forwarded_for.split(',')[0]
+        return '%s - - [%s] "%s" %s %s %s' % (
+            client_address or '-',
+            now,
+            self.requestline or '',
+            (self._orig_status or self.status or '000').split()[0],
+            length,
+            delta)
+
 def start_server(_cache: Cache):
     global cache
     cache = _cache
     logging.info("start http server at http://%s:%s", server_cfg.host, server_cfg.port)
     server = pywsgi.WSGIServer(
-        (server_cfg.host, server_cfg.port), app, log=logging.getLogger()
+        (server_cfg.host, server_cfg.port), app,
+        log=logging.getLogger(), handler_class=Handler
     )
     server.serve_forever()
 
