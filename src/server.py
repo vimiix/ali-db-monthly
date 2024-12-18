@@ -1,16 +1,18 @@
 from flask import (
     Flask, request, jsonify,
-    render_template,
+    render_template, make_response
 )
 from datetime import datetime
 from gevent import pywsgi
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import select, func
 from diskcache import Cache
+from feedgen.feed import FeedGenerator
 
 import logging
 import math
 from typing import List, Tuple
+from zoneinfo import ZoneInfo
 
 from model import Artical, get_config
 
@@ -43,6 +45,64 @@ def articals():
     articals, total = get_articals(start_date, end_date, tag, page)
     articals = [a.to_dict() for a in articals]
     return jsonify(articals=articals, total_pages=math.ceil(total / 10))
+
+@app.route("/rss", methods=["GET"])
+def rss():
+    fg = build_feed_generator()
+    fg.link(href='https://alidbmonthly.vimiix.com/rss', rel='self')
+    resp = make_response(fg.rss_str(pretty=True))
+    resp.headers['Content-Type'] = 'application/rss+xml'
+    return resp
+
+@app.route("/atom.xml", methods=["GET"])
+def atom():
+    fg = build_feed_generator()
+    fg.link(href='https://alidbmonthly.vimiix.com/atom.xml', rel='self')
+    resp = make_response(fg.atom_str(pretty=True))
+    resp.headers['Content-Type'] = 'application/atom+xml,charset=UTF-8'
+    return resp
+
+def build_feed_generator() -> FeedGenerator:
+    fg = FeedGenerator()
+    fg.id("https://alidbmonthly.vimiix.com/")
+    fg.title("数据库内核月报 Wrapper")
+    fg.author({'name': 'Vimiix',
+               'uri': 'https://www.vimiix.com/',
+               'email': 'i@vimiix.com'})
+    fg.language('zh-CN')
+    fg.description("数据库内核月报 Wrapper")
+
+    for artical in get_feed_articals():
+        fe = fg.add_entry(order='append')
+        fe.id(artical.url)
+        fe.title(artical.title)
+        fe.link(href=artical.url, rel='alternate')
+        fe.author({'name': artical.author})
+        fe.category({'term':artical.tag, 'label': artical.tag})
+        dt = datetime.combine(artical.create_date, datetime.min.time())
+        dt_with_tz = dt.replace(tzinfo=ZoneInfo("Asia/Shanghai"))
+        fe.pubDate(dt_with_tz)
+        fe.description("Please visit %s for more details" % artical.url)
+    return fg
+
+
+def get_feed_articals() -> List[Artical]:
+    cache_key = "feed_articals"
+    try:
+        return cache[cache_key]
+    except KeyError:
+        pass
+    logging.info("not found in cache: %s", cache_key)
+    with sessionmaker(cfg.db.engine)() as sess:
+        stmt = (
+            select(Artical)
+            .order_by(Artical.create_date.desc())
+            .limit(20)
+        )
+        articals = sess.execute(stmt).scalars().all()
+    cache.set(cache_key, articals)
+    return articals
+
 
 def get_articals(start_date: str, end_date:str, tag:str, page: int) -> Tuple[List[Artical], int]:
     cache_key = f"articals_{start_date}_{end_date}_{tag}_{page}"
